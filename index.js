@@ -4,11 +4,11 @@ const cors = require("cors");
 const mysql = require("mysql2");
 console.log('MYSQLUSER', process.env.MYSQLUSER);
 
-// const DBHOST = process.env.MYSQLHOST || "localhost";
-// const DBPORT = process.env.MYSQLPORT || 3306;
-// const DBDATABASE = process.env.MYSQLDATABASE || "bdL22100217";
-// const DBUSER = process.env.MYSQLUSER || "root";
-// const DBPASSWORD = process.env.MYSQLROOTPASSWORD || "";
+const DBHOST = process.env.MYSQLHOST || "localhost";
+ const DBPORT = process.env.MYSQLPORT || 3306;
+ const DBDATABASE = process.env.MYSQLDATABASE || "bdL22100217";
+const DBUSER = process.env.MYSQLUSER || "root";
+const DBPASSWORD = process.env.MYSQLROOTPASSWORD || "";
 
 const app = express();
 app.use(express.json());
@@ -16,11 +16,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan("combined"));
 app.use(cors());
 
-const DBHOST = process.env.DBHOST;
-const DBPORT = process.env.DBPORT || 3306;
-const DBDATABASE = process.env.DBDATABASE;
-const DBUSER = process.env.DBUSER;
-const DBPASSWORD = process.env.DBPASSWORD;
+// const DBHOST = process.env.DBHOST;
+// const DBPORT = process.env.DBPORT || 3306;
+// const DBDATABASE = process.env.DBDATABASE;
+// const DBUSER = process.env.DBUSER;
+// const DBPASSWORD = process.env.DBPASSWORD;
 
 // Conexión a la base de datos
 
