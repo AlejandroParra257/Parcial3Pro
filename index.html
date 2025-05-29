@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Jugadores de Béisbol</title>
   <style>
+    /* Mismo CSS que antes */
     body {
       font-family: Arial, sans-serif;
       background: white;
@@ -13,11 +14,7 @@
       margin-left: auto;
       margin-right: auto;
     }
-
-    h1 {
-      text-align: center;
-    }
-
+    h1 { text-align: center; }
     button {
       cursor: pointer;
       padding: 8px 15px;
@@ -27,29 +24,15 @@
       color: white;
       background-color: #0275d8;
     }
-    button.active {
-      background-color: #025aa5;
-    }
-
-    #tabla-jugadores, #formulario {
-      display: none;
-    }
-
+    button.active { background-color: #025aa5; }
+    #tabla-jugadores, #formulario { display: none; }
     table {
       width: 100%;
       border-collapse: collapse;
     }
-    table, th, td {
-      border: 1px solid #ccc;
-    }
-    th, td {
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #f5f5f5;
-    }
-
+    table, th, td { border: 1px solid #ccc; }
+    th, td { padding: 8px; text-align: left; }
+    th { background-color: #f5f5f5; }
     .btn-eliminar {
       background-color: #d9534f;
       border: none;
@@ -67,7 +50,6 @@
       border-radius: 3px;
       cursor: pointer;
     }
-
     input {
       padding: 8px;
       margin: 5px 0;
@@ -76,7 +58,6 @@
       border: 1px solid #ccc;
       border-radius: 3px;
     }
-
     form button {
       margin-top: 10px;
       background-color: #5cb85c;
@@ -92,28 +73,21 @@
 
   <h1>Jugadores de Béisbol</h1>
 
-  <!-- Botones para mostrar tabla o formulario -->
   <button id="btnMostrarTabla" class="active">Ver Jugadores</button>
   <button id="btnMostrarFormulario">Agregar Jugador</button>
+  <button id="btnEditarJugador" style="background-color:#5bc0de;">Editar Jugador por ID</button>
 
-  <!-- Tabla para mostrar jugadores -->
   <div id="tabla-jugadores">
     <table>
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Nombre</th>
-          <th>Apellido</th>
-          <th>Posición</th>
-          <th>Número</th>
-          <th>Acciones</th>
+          <th>ID</th><th>Nombre</th><th>Apellido</th><th>Posición</th><th>Número</th><th>Acciones</th>
         </tr>
       </thead>
       <tbody id="contenedor-jugadores"></tbody>
     </table>
   </div>
 
-  <!-- Formulario para agregar o editar jugador -->
   <div id="formulario">
     <form id="formAgregar">
       <input type="number" id="id" placeholder="ID" required />
@@ -130,37 +104,38 @@
 
     const btnMostrarTabla = document.getElementById('btnMostrarTabla');
     const btnMostrarFormulario = document.getElementById('btnMostrarFormulario');
+    const btnEditarJugador = document.getElementById('btnEditarJugador');
     const tablaJugadores = document.getElementById('tabla-jugadores');
     const formulario = document.getElementById('formulario');
     const contenedor = document.getElementById("contenedor-jugadores");
     const formAgregar = document.getElementById("formAgregar");
 
-    let modoEdicion = false;  // Variable para saber si estamos editando
-    let idEditando = null;    // Guardar ID del jugador que se edita
+    let modoEdicion = false;
+    let idEditando = null;
 
-    // Mostrar tabla y ocultar formulario al cargar la página
     function mostrarTabla() {
       tablaJugadores.style.display = 'block';
       formulario.style.display = 'none';
       btnMostrarTabla.classList.add('active');
       btnMostrarFormulario.classList.remove('active');
+      btnEditarJugador.classList.remove('active');
       cargarJugadores();
       modoEdicion = false;
       idEditando = null;
       formAgregar.reset();
-      document.getElementById("id").disabled = false; // habilitar input id
+      document.getElementById("id").disabled = false;
       formAgregar.querySelector("button").textContent = "Guardar jugador";
     }
 
-    // Mostrar formulario y ocultar tabla
     function mostrarFormulario() {
       tablaJugadores.style.display = 'none';
       formulario.style.display = 'block';
       btnMostrarFormulario.classList.add('active');
       btnMostrarTabla.classList.remove('active');
+      btnEditarJugador.classList.remove('active');
       if (!modoEdicion) {
         formAgregar.reset();
-        document.getElementById("id").disabled = false; // habilitar input id para nuevo jugador
+        document.getElementById("id").disabled = false;
         formAgregar.querySelector("button").textContent = "Guardar jugador";
       }
     }
@@ -168,7 +143,39 @@
     btnMostrarTabla.addEventListener('click', mostrarTabla);
     btnMostrarFormulario.addEventListener('click', mostrarFormulario);
 
-    // Cargar y mostrar jugadores en la tabla
+    // Botón para editar jugador por ID
+    btnEditarJugador.addEventListener('click', async () => {
+      const idPrompt = prompt("Escribe el ID del jugador que quieres editar:");
+      if (!idPrompt) return alert("No se ingresó ID.");
+
+      const id = parseInt(idPrompt);
+      if (isNaN(id)) return alert("ID inválido.");
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/jugadores/${id}`);
+        if (!res.ok) throw new Error("Jugador no encontrado.");
+        const jugador = await res.json();
+
+        mostrarFormulario();
+
+        document.getElementById("id").value = jugador.id;
+        document.getElementById("nombre").value = jugador.nombre;
+        document.getElementById("apellido").value = jugador.apellido;
+        document.getElementById("posicion").value = jugador.posicion;
+        document.getElementById("numero").value = jugador.numero_camiseta;
+
+        modoEdicion = true;
+        idEditando = id;
+
+        document.getElementById("id").disabled = true;
+        formAgregar.querySelector("button").textContent = "Guardar cambios";
+
+      } catch (error) {
+        alert("Jugador no encontrado con ese ID.");
+        console.error(error);
+      }
+    });
+
     function cargarJugadores() {
       fetch(`${API_BASE_URL}/jugadores`)
         .then(res => res.json())
@@ -182,54 +189,18 @@
               <td>${j.apellido}</td>
               <td>${j.posicion}</td>
               <td>${j.numero_camiseta}</td>
-              <td>
-                <button class="btn-eliminar" onclick="eliminar(${j.id})">Eliminar</button>
-                <button class="btn-editar" onclick="editar(${j.id})">Editar</button>
-              </td>
+              <td><button class="btn-eliminar" onclick="eliminar(${j.id})">Eliminar</button></td>
             `;
             contenedor.appendChild(fila);
           });
         });
     }
 
-    // Función para eliminar jugador
     function eliminar(id) {
-      fetch(`${API_BASE_URL}/jugadores/${id}`, {
-        method: "DELETE"
-      }).then(() => cargarJugadores());
+      fetch(`${API_BASE_URL}/jugadores/${id}`, { method: "DELETE" })
+        .then(() => cargarJugadores());
     }
 
-    // Función para editar jugador (carga datos en formulario)
-    async function editar(id) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/jugadores/${id}`);
-        if (!res.ok) throw new Error("Jugador no encontrado");
-        const jugador = await res.json();
-
-        // Mostrar formulario con datos
-        mostrarFormulario();
-
-        document.getElementById("id").value = jugador.id;
-        document.getElementById("nombre").value = jugador.nombre;
-        document.getElementById("apellido").value = jugador.apellido;
-        document.getElementById("posicion").value = jugador.posicion;
-        document.getElementById("numero").value = jugador.numero_camiseta;
-
-        modoEdicion = true;
-        idEditando = id;
-
-        // Bloquear edición del ID (porque es PK)
-        document.getElementById("id").disabled = true;
-
-        formAgregar.querySelector("button").textContent = "Guardar cambios";
-
-      } catch (error) {
-        alert("Error al cargar jugador para edición.");
-        console.error(error);
-      }
-    }
-
-    // Enviar formulario para agregar o actualizar jugador
     formAgregar.addEventListener("submit", async e => {
       e.preventDefault();
 
@@ -243,7 +214,6 @@
 
       try {
         if (modoEdicion) {
-          // Actualizar jugador (PUT o PATCH)
           const response = await fetch(`${API_BASE_URL}/jugadores/${idEditando}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -254,7 +224,6 @@
 
           alert("Jugador actualizado correctamente.");
         } else {
-          // Crear nuevo jugador (POST)
           const response = await fetch(`${API_BASE_URL}/jugadores`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -292,7 +261,6 @@
       }
     });
 
-    // Mostrar tabla al cargar la página
     mostrarTabla();
   </script>
 
