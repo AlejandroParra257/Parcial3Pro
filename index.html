@@ -4,31 +4,35 @@
   <meta charset="UTF-8" />
   <title>Jugadores de Béisbol</title>
   <style>
+   
     body {
       font-family: Arial, sans-serif;
       background: white;
       color: black;
-      margin: 20px auto;
+      margin: 20px;
       max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
     }
-    h1, h2 {
-      text-align: center;
+    h1 { text-align: center; }
+    button {
+      cursor: pointer;
+      padding: 8px 15px;
+      margin: 5px 5px 15px 0;
+      border: none;
+      border-radius: 3px;
+      color: white;
+      background-color: #0275d8;
     }
+    button.active { background-color: #025aa5; }
+    #tabla-jugadores, #formulario { display: none; }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 30px;
     }
-    table, th, td {
-      border: 1px solid #ccc;
-    }
-    th, td {
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #f5f5f5;
-    }
+    table, th, td { border: 1px solid #ccc; }
+    th, td { padding: 8px; text-align: left; }
+    th { background-color: #f5f5f5; }
     .btn-eliminar {
       background-color: #d9534f;
       border: none;
@@ -46,27 +50,22 @@
       border-radius: 3px;
       cursor: pointer;
     }
-    form input {
+    input {
       padding: 8px;
-      margin: 6px 0;
+      margin: 5px 0;
       width: 100%;
       box-sizing: border-box;
       border: 1px solid #ccc;
       border-radius: 3px;
     }
     form button {
-      margin-top: 15px;
+      margin-top: 10px;
       background-color: #5cb85c;
       border: none;
       color: white;
-      padding: 12px;
+      padding: 10px;
       width: 100%;
       border-radius: 3px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    .form-group {
-      margin-bottom: 12px;
     }
   </style>
 </head>
@@ -74,8 +73,11 @@
 
   <h1>Jugadores de Béisbol</h1>
 
-  <section id="tabla-jugadores">
-    <h2>Lista de Jugadores</h2>
+  <button id="btnMostrarTabla" class="active">Ver Jugadores</button>
+  <button id="btnMostrarFormulario">Agregar Jugador</button>
+  <button id="btnEditarJugador" style="background-color:#5bc0de;">Editar Jugador por ID</button>
+
+  <div id="tabla-jugadores">
     <table>
       <thead>
         <tr>
@@ -84,72 +86,80 @@
       </thead>
       <tbody id="contenedor-jugadores"></tbody>
     </table>
-  </section>
+  </div>
 
-  <section id="formulario-jugador">
-    <h2 id="titulo-formulario">Agregar Nuevo Jugador</h2>
+  <div id="formulario">
     <form id="formAgregar">
-      <div class="form-group">
-        <input type="number" id="id" placeholder="ID" required />
-      </div>
-      <div class="form-group">
-        <input type="text" id="nombre" placeholder="Nombre" required />
-      </div>
-      <div class="form-group">
-        <input type="text" id="apellido" placeholder="Apellido" required />
-      </div>
-      <div class="form-group">
-        <input type="text" id="posicion" placeholder="Posición" required />
-      </div>
-      <div class="form-group">
-        <input type="number" id="numero" placeholder="Número de camiseta" required />
-      </div>
+      <input type="number" id="id" placeholder="ID" required />
+      <input type="text" id="nombre" placeholder="Nombre" required />
+      <input type="text" id="apellido" placeholder="Apellido" required />
+      <input type="text" id="posicion" placeholder="Posición" required />
+      <input type="number" id="numero" placeholder="Número de camiseta" required />
       <button type="submit">Guardar jugador</button>
     </form>
-  </section>
+  </div>
 
   <script>
     const API_BASE_URL = "https://parcial3pro.onrender.com";
 
+    const btnMostrarTabla = document.getElementById('btnMostrarTabla');
+    const btnMostrarFormulario = document.getElementById('btnMostrarFormulario');
+    const btnEditarJugador = document.getElementById('btnEditarJugador');
+    const tablaJugadores = document.getElementById('tabla-jugadores');
+    const formulario = document.getElementById('formulario');
     const contenedor = document.getElementById("contenedor-jugadores");
     const formAgregar = document.getElementById("formAgregar");
-    const tituloFormulario = document.getElementById("titulo-formulario");
 
     let modoEdicion = false;
     let idEditando = null;
 
-    async function cargarJugadores() {
-      try {
-        const res = await fetch(`${API_BASE_URL}/jugadores`);
-        const data = await res.json();
+    function mostrarTabla() {
+      tablaJugadores.style.display = 'block';
+      formulario.style.display = 'none';
+      btnMostrarTabla.classList.add('active');
+      btnMostrarFormulario.classList.remove('active');
+      btnEditarJugador.classList.remove('active');
+      cargarJugadores();
+      modoEdicion = false;
+      idEditando = null;
+      formAgregar.reset();
+      document.getElementById("id").disabled = false;
+      formAgregar.querySelector("button").textContent = "Guardar jugador";
+    }
 
-        contenedor.innerHTML = "";
-        data.forEach(j => {
-          const fila = document.createElement("tr");
-          fila.innerHTML = `
-            <td>${j.id}</td>
-            <td>${j.nombre}</td>
-            <td>${j.apellido}</td>
-            <td>${j.posicion}</td>
-            <td>${j.numero_camiseta}</td>
-            <td>
-              <button class="btn-editar" onclick="editarJugador(${j.id})">Editar</button>
-              <button class="btn-eliminar" onclick="eliminar(${j.id})">Eliminar</button>
-            </td>
-          `;
-          contenedor.appendChild(fila);
-        });
-      } catch (error) {
-        alert("Error cargando jugadores.");
-        console.error(error);
+    function mostrarFormulario() {
+      tablaJugadores.style.display = 'none';
+      formulario.style.display = 'block';
+      btnMostrarFormulario.classList.add('active');
+      btnMostrarTabla.classList.remove('active');
+      btnEditarJugador.classList.remove('active');
+      if (!modoEdicion) {
+        formAgregar.reset();
+        document.getElementById("id").disabled = false;
+        formAgregar.querySelector("button").textContent = "Guardar jugador";
       }
     }
 
-    window.editarJugador = async function(id) {
+    btnMostrarTabla.addEventListener('click', mostrarTabla);
+    btnMostrarFormulario.addEventListener('click', mostrarFormulario);
+
+    // Botón para editar jugador por ID con búsqueda local
+    btnEditarJugador.addEventListener('click', async () => {
+      const idPrompt = prompt("Escribe el ID del jugador que quieres editar:");
+      if (!idPrompt) return alert("No se ingresó ID.");
+
+      const id = parseInt(idPrompt);
+      if (isNaN(id)) return alert("ID inválido.");
+
       try {
-        const res = await fetch(`${API_BASE_URL}/jugadores/${id}`);
-        if (!res.ok) throw new Error("Jugador no encontrado.");
-        const jugador = await res.json();
+        const res = await fetch(`${API_BASE_URL}/jugadores`);
+        if (!res.ok) throw new Error("Error al obtener jugadores");
+        const jugadores = await res.json();
+
+        const jugador = jugadores.find(j => j.id === id);
+        if (!jugador) throw new Error("Jugador no encontrado");
+
+        mostrarFormulario();
 
         document.getElementById("id").value = jugador.id;
         document.getElementById("nombre").value = jugador.nombre;
@@ -159,36 +169,39 @@
 
         modoEdicion = true;
         idEditando = id;
+
         document.getElementById("id").disabled = true;
-        tituloFormulario.textContent = "Editar Jugador";
         formAgregar.querySelector("button").textContent = "Guardar cambios";
+
       } catch (error) {
-        alert("Error al cargar datos del jugador.");
+        alert(error.message);
         console.error(error);
       }
-    };
+    });
 
-    window.eliminar = async function(id) {
-      if (!confirm("¿Estás seguro de eliminar este jugador?")) return;
-      try {
-        await fetch(`${API_BASE_URL}/jugadores/${id}`, { method: "DELETE" });
-        cargarJugadores();
-        if (modoEdicion && idEditando === id) {
-          resetForm();
-        }
-      } catch (error) {
-        alert("Error al eliminar jugador.");
-        console.error(error);
-      }
-    };
+    function cargarJugadores() {
+      fetch(`${API_BASE_URL}/jugadores`)
+        .then(res => res.json())
+        .then(data => {
+          contenedor.innerHTML = "";
+          data.forEach(j => {
+            const fila = document.createElement("tr");
+            fila.innerHTML = `
+              <td>${j.id}</td>
+              <td>${j.nombre}</td>
+              <td>${j.apellido}</td>
+              <td>${j.posicion}</td>
+              <td>${j.numero_camiseta}</td>
+              <td><button class="btn-eliminar" onclick="eliminar(${j.id})">Eliminar</button></td>
+            `;
+            contenedor.appendChild(fila);
+          });
+        });
+    }
 
-    function resetForm() {
-      formAgregar.reset();
-      document.getElementById("id").disabled = false;
-      modoEdicion = false;
-      idEditando = null;
-      tituloFormulario.textContent = "Agregar Nuevo Jugador";
-      formAgregar.querySelector("button").textContent = "Guardar jugador";
+    function eliminar(id) {
+      fetch(`${API_BASE_URL}/jugadores/${id}`, { method: "DELETE" })
+        .then(() => cargarJugadores());
     }
 
     formAgregar.addEventListener("submit", async e => {
@@ -233,8 +246,7 @@
                   body: JSON.stringify(jugadorData)
                 });
                 alert("Jugador reemplazado exitosamente.");
-                cargarJugadores();
-                resetForm();
+                mostrarTabla();
                 return;
               }
               return;
@@ -245,16 +257,14 @@
           alert("Jugador guardado exitosamente.");
         }
 
-        cargarJugadores();
-        resetForm();
+        mostrarTabla();
       } catch (error) {
         console.error("Error al guardar:", error);
         alert("❌ Error al guardar jugador.");
       }
     });
 
-    // Carga inicial de datos
-    cargarJugadores();
+    mostrarTabla();
   </script>
 
 </body>
