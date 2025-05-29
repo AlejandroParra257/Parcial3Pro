@@ -227,6 +227,7 @@
 
           if (!response.ok) {
             const errorText = await response.text();
+            alert(`Error al actualizar jugador:\nStatus: ${response.status}\nMensaje: ${errorText}`);
             throw new Error(errorText || "Error al actualizar jugador");
           }
 
@@ -274,6 +275,7 @@
 
 </body>
 </html>
+
 
 
 
