@@ -121,26 +121,30 @@
           contenedor.innerHTML = '';
           jugadores.forEach(jugador => {
             const fila = document.createElement('tr');
+
             fila.innerHTML = `
               <td>${jugador.id}</td>
               <td>${jugador.nombre}</td>
               <td>${jugador.apellido}</td>
               <td>${jugador.posicion}</td>
               <td>${jugador.numero_camiseta}</td>
-              <td>
-                <button class="btn-eliminar">Eliminar</button>
-                <button class="btn-editar">Editar</button>
-              </td>
+              <td></td>
             `;
 
-            // Asignar eventos a botones eliminar y editar
-            fila.querySelector('.btn-eliminar').addEventListener('click', () => {
-              eliminarJugador(jugador.id);
-            });
+            // Crear botones
+            const btnEliminar = document.createElement('button');
+            btnEliminar.textContent = 'Eliminar';
+            btnEliminar.className = 'btn-eliminar';
+            btnEliminar.addEventListener('click', () => eliminarJugador(jugador.id));
 
-            fila.querySelector('.btn-editar').addEventListener('click', () => {
-              editarJugador(jugador.id);
-            });
+            const btnEditar = document.createElement('button');
+            btnEditar.textContent = 'Editar';
+            btnEditar.className = 'btn-editar';
+            btnEditar.addEventListener('click', () => editarJugador(jugador.id));
+
+            // Agregar botones a la última celda
+            fila.children[5].appendChild(btnEliminar);
+            fila.children[5].appendChild(btnEditar);
 
             contenedor.appendChild(fila);
           });
@@ -328,6 +332,7 @@
 
 </body>
 </html>
+
 
 
 
