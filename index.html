@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>Jugadores de Béisbol</title>
   <style>
-   
     body {
       font-family: Arial, sans-serif;
       background: white;
@@ -217,10 +216,13 @@
 
       try {
         if (modoEdicion) {
+          // Excluir id del body para evitar conflicto con el backend
+          const { id, ...datosSinId } = jugadorData;
+
           const response = await fetch(`${API_BASE_URL}/jugadores/${idEditando}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(jugadorData)
+            body: JSON.stringify(datosSinId)
           });
 
           if (!response.ok) throw new Error("Error al actualizar jugador");
@@ -269,6 +271,7 @@
 
 </body>
 </html>
+
 
 
 
