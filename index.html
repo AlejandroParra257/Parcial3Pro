@@ -99,7 +99,7 @@
   </div>
 
   <script>
-    const API_BASE_URL = "https://parcial3pro.onrender.com";
+    const API_BASE_URL = "https://parcial3pro.onrender.com/jugadores";
 
     const btnMostrarTabla = document.getElementById('btnMostrarTabla');
     const btnMostrarFormulario = document.getElementById('btnMostrarFormulario');
@@ -112,6 +112,35 @@
     let modoEdicion = false;
     let idEditando = null;
 
+    document.addEventListener('DOMContentLoaded', mostrarTabla);
+
+    function cargarJugadores() {
+      fetch(API_BASE_URL)
+        .then(res => res.json())
+        .then(jugadores => {
+          contenedor.innerHTML = '';
+          jugadores.forEach(jugador => {
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+              <td>${jugador.id}</td>
+              <td>${jugador.nombre}</td>
+              <td>${jugador.apellido}</td>
+              <td>${jugador.posicion}</td>
+              <td>${jugador.numero_camiseta}</td>
+              <td>
+                <button class="btn-eliminar" onclick="eliminarJugador(${jugador.id})">Eliminar</button>
+                <button class="btn-editar" onclick="editarJugador(${jugador.id})">Editar</button>
+              </td>
+            `;
+            contenedor.appendChild(fila);
+          });
+        })
+        .catch(error => {
+          console.error('Error al cargar jugadores:', error);
+          alert('Error al cargar jugadores.');
+        });
+    }
+
     function mostrarTabla() {
       tablaJugadores.style.display = 'block';
       formulario.style.display = 'none';
@@ -121,7 +150,7 @@
       cargarJugadores();
       modoEdicion = false;
       idEditando = null;
-      formAgregar.reset();
+      limpiarFormulario();
       document.getElementById("id").disabled = false;
       formAgregar.querySelector("button").textContent = "Guardar jugador";
     }
@@ -133,146 +162,161 @@
       btnMostrarTabla.classList.remove('active');
       btnEditarJugador.classList.remove('active');
       if (!modoEdicion) {
-        formAgregar.reset();
+        limpiarFormulario();
         document.getElementById("id").disabled = false;
         formAgregar.querySelector("button").textContent = "Guardar jugador";
       }
     }
 
+    function agregarJugador(datos) {
+      return fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos)
+      })
+      .then(res => {
+        if (!res.ok) return res.text().then(text => { throw new Error(text) });
+        return res.json();
+      });
+    }
+
+    function actualizarJugador(id, datos) {
+      return fetch(`${API_BASE_URL}?id=${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos)
+      })
+      .then(res => {
+        if (!res.ok) return res.text().then(text => { throw new Error(text) });
+        return res.json();
+      });
+    }
+
+    function eliminarJugador(id) {
+      return fetch(`${API_BASE_URL}?id=${id}`, { method: 'DELETE' })
+        .then(res => {
+          if (!res.ok) return res.text().then(text => { throw new Error(text) });
+          return res.json();
+        })
+        .then(() => {
+          alert('Jugador eliminado correctamente.');
+          mostrarTabla();
+        })
+        .catch(err => {
+          alert('Error al eliminar jugador: ' + err.message);
+          console.error(err);
+        });
+    }
+
+    function editarJugador(id) {
+      fetch(API_BASE_URL)
+        .then(res => res.json())
+        .then(jugadores => {
+          const jugador = jugadores.find(j => j.id === id);
+          if (!jugador) {
+            alert('Jugador no encontrado.');
+            return;
+          }
+
+          mostrarFormulario();
+          modoEdicion = true;
+          idEditando = id;
+
+          document.getElementById("id").value = jugador.id;
+          document.getElementById("nombre").value = jugador.nombre;
+          document.getElementById("apellido").value = jugador.apellido;
+          document.getElementById("posicion").value = jugador.posicion;
+          document.getElementById("numero").value = jugador.numero_camiseta;
+
+          document.getElementById("id").disabled = true;
+          formAgregar.querySelector("button").textContent = "Guardar cambios";
+        })
+        .catch(error => {
+          alert('Error al obtener datos para editar.');
+          console.error(error);
+        });
+    }
+
+    function limpiarFormulario() {
+      formAgregar.reset();
+      document.getElementById("id").disabled = false;
+    }
+
+    formAgregar.addEventListener('submit', e => {
+      e.preventDefault();
+
+      const id = parseInt(document.getElementById("id").value);
+      const nombre = document.getElementById("nombre").value.trim();
+      const apellido = document.getElementById("apellido").value.trim();
+      const posicion = document.getElementById("posicion").value.trim();
+      const numero_camiseta = parseInt(document.getElementById("numero").value);
+
+      if (!id || !nombre || !apellido || !posicion || !numero_camiseta) {
+        alert("Por favor, llena todos los campos correctamente.");
+        return;
+      }
+
+      const datosJugador = { id, nombre, apellido, posicion, numero_camiseta };
+
+      if (modoEdicion) {
+        actualizarJugador(idEditando, {
+          nombre,
+          apellido,
+          posicion,
+          numero_camiseta
+        })
+        .then(() => {
+          alert('Jugador actualizado correctamente.');
+          mostrarTabla();
+        })
+        .catch(err => {
+          alert('Error al actualizar jugador: ' + err.message);
+          console.error(err);
+        });
+      } else {
+        agregarJugador(datosJugador)
+        .then(() => {
+          alert('Jugador guardado exitosamente.');
+          mostrarTabla();
+        })
+        .catch(err => {
+          if (err.message.includes("Duplicate entry") && err.message.includes("PRIMARY")) {
+            if (confirm("⚠️ El ID ya existe. ¿Deseas eliminar ese jugador y reemplazarlo?")) {
+              eliminarJugador(datosJugador.id)
+              .then(() => agregarJugador(datosJugador))
+              .then(() => {
+                alert("Jugador reemplazado exitosamente.");
+                mostrarTabla();
+              })
+              .catch(error => {
+                alert("Error al reemplazar jugador: " + error.message);
+                console.error(error);
+              });
+            }
+          } else {
+            alert('Error al guardar jugador: ' + err.message);
+            console.error(err);
+          }
+        });
+      }
+    });
+
     btnMostrarTabla.addEventListener('click', mostrarTabla);
     btnMostrarFormulario.addEventListener('click', mostrarFormulario);
-
-    btnEditarJugador.addEventListener('click', async () => {
+    btnEditarJugador.addEventListener('click', () => {
       const idPrompt = prompt("Escribe el ID del jugador que quieres editar:");
       if (!idPrompt) return alert("No se ingresó ID.");
 
       const id = parseInt(idPrompt);
       if (isNaN(id)) return alert("ID inválido.");
 
-      try {
-        const res = await fetch(`${API_BASE_URL}/jugadores`);
-        if (!res.ok) throw new Error("Error al obtener jugadores");
-        const jugadores = await res.json();
-
-        const jugador = jugadores.find(j => j.id === id);
-        if (!jugador) throw new Error("Jugador no encontrado");
-
-        mostrarFormulario();
-
-        document.getElementById("id").value = jugador.id;
-        document.getElementById("nombre").value = jugador.nombre;
-        document.getElementById("apellido").value = jugador.apellido;
-        document.getElementById("posicion").value = jugador.posicion;
-        document.getElementById("numero").value = jugador.numero_camiseta;
-
-        modoEdicion = true;
-        idEditando = id;
-
-        document.getElementById("id").disabled = true;
-        formAgregar.querySelector("button").textContent = "Guardar cambios";
-
-      } catch (error) {
-        alert(error.message);
-        console.error(error);
-      }
+      editarJugador(id);
     });
-
-    function cargarJugadores() {
-      fetch(`${API_BASE_URL}/jugadores`)
-        .then(res => res.json())
-        .then(data => {
-          contenedor.innerHTML = "";
-          data.forEach(j => {
-            const fila = document.createElement("tr");
-            fila.innerHTML = `
-              <td>${j.id}</td>
-              <td>${j.nombre}</td>
-              <td>${j.apellido}</td>
-              <td>${j.posicion}</td>
-              <td>${j.numero_camiseta}</td>
-              <td><button class="btn-eliminar" onclick="eliminar(${j.id})">Eliminar</button></td>
-            `;
-            contenedor.appendChild(fila);
-          });
-        });
-    }
-
-    function eliminar(id) {
-      fetch(`${API_BASE_URL}/jugadores?id=${id}`, { method: "DELETE" })
-        .then(() => cargarJugadores());
-    }
-
-    formAgregar.addEventListener("submit", async e => {
-      e.preventDefault();
-
-      const jugadorData = {
-        id: parseInt(document.getElementById("id").value),
-        nombre: document.getElementById("nombre").value,
-        apellido: document.getElementById("apellido").value,
-        posicion: document.getElementById("posicion").value,
-        numero_camiseta: parseInt(document.getElementById("numero").value)
-      };
-
-      try {
-        if (modoEdicion) {
-          const { id, ...datosSinId } = jugadorData;
-
-          const response = await fetch(`${API_BASE_URL}/jugadores?id=${idEditando}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(datosSinId)
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            alert(`Error al actualizar jugador:\nStatus: ${response.status}\nMensaje: ${errorText}`);
-            throw new Error(errorText || "Error al actualizar jugador");
-          }
-
-          alert("Jugador actualizado correctamente.");
-        } else {
-          const response = await fetch(`${API_BASE_URL}/jugadores`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(jugadorData)
-          });
-
-          if (!response.ok) {
-            const msg = await response.text();
-
-            if (msg.includes("Duplicate entry") && msg.includes("PRIMARY")) {
-              const confirmar = confirm("⚠️ El ID ya existe. ¿Deseas eliminar ese jugador y reemplazarlo?");
-              if (confirmar) {
-                await fetch(`${API_BASE_URL}/jugadores?id=${jugadorData.id}`, { method: "DELETE" });
-                await fetch(`${API_BASE_URL}/jugadores`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(jugadorData)
-                });
-                alert("Jugador reemplazado exitosamente.");
-                mostrarTabla();
-                return;
-              }
-              return;
-            }
-            throw new Error(msg);
-          }
-
-          alert("Jugador guardado exitosamente.");
-        }
-
-        mostrarTabla();
-      } catch (error) {
-        console.error("Error al guardar:", error);
-        alert("❌ Error al guardar jugador: " + error.message);
-      }
-    });
-
-    mostrarTabla();
   </script>
 
 </body>
 </html>
+
 
 
 
