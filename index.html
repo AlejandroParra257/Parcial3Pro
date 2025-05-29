@@ -142,7 +142,6 @@
     btnMostrarTabla.addEventListener('click', mostrarTabla);
     btnMostrarFormulario.addEventListener('click', mostrarFormulario);
 
-    // Botón para editar jugador por ID con búsqueda local
     btnEditarJugador.addEventListener('click', async () => {
       const idPrompt = prompt("Escribe el ID del jugador que quieres editar:");
       if (!idPrompt) return alert("No se ingresó ID.");
@@ -199,7 +198,7 @@
     }
 
     function eliminar(id) {
-      fetch(`${API_BASE_URL}/jugadores/${id}`, { method: "DELETE" })
+      fetch(`${API_BASE_URL}/jugadores?id=${id}`, { method: "DELETE" })
         .then(() => cargarJugadores());
     }
 
@@ -216,11 +215,10 @@
 
       try {
         if (modoEdicion) {
-          // Excluir id del body para evitar conflicto con el backend
           const { id, ...datosSinId } = jugadorData;
 
-          const response = await fetch(`${API_BASE_URL}/jugadores/${idEditando}`, {
-            method: "PUT",
+          const response = await fetch(`${API_BASE_URL}/jugadores?id=${idEditando}`, {
+            method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(datosSinId)
           });
@@ -245,7 +243,7 @@
             if (msg.includes("Duplicate entry") && msg.includes("PRIMARY")) {
               const confirmar = confirm("⚠️ El ID ya existe. ¿Deseas eliminar ese jugador y reemplazarlo?");
               if (confirmar) {
-                await fetch(`${API_BASE_URL}/jugadores/${jugadorData.id}`, { method: "DELETE" });
+                await fetch(`${API_BASE_URL}/jugadores?id=${jugadorData.id}`, { method: "DELETE" });
                 await fetch(`${API_BASE_URL}/jugadores`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -275,6 +273,7 @@
 
 </body>
 </html>
+
 
 
 
