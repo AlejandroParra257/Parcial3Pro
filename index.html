@@ -4,9 +4,6 @@
   <meta charset="UTF-8" />
   <title>Jugadores de Béisbol</title>
   <style>
-
-    
-    /* Estilos igual que antes */
     body {
       font-family: Arial, sans-serif;
       background: white;
@@ -52,8 +49,18 @@
     th {
       background-color: #f5f5f5;
     }
+
     .btn-eliminar {
       background-color: #d9534f;
+      border: none;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      margin-right: 5px;
+    }
+    .btn-editar {
+      background-color: #5bc0de;
       border: none;
       color: white;
       padding: 5px 10px;
@@ -106,7 +113,7 @@
     </table>
   </div>
 
-  <!-- Formulario para agregar jugador -->
+  <!-- Formulario para agregar o editar jugador -->
   <div id="formulario">
     <form id="formAgregar">
       <input type="number" id="id" placeholder="ID" required />
@@ -128,6 +135,9 @@
     const contenedor = document.getElementById("contenedor-jugadores");
     const formAgregar = document.getElementById("formAgregar");
 
+    let modoEdicion = false;  // Variable para saber si estamos editando
+    let idEditando = null;    // Guardar ID del jugador que se edita
+
     // Mostrar tabla y ocultar formulario al cargar la página
     function mostrarTabla() {
       tablaJugadores.style.display = 'block';
@@ -135,6 +145,11 @@
       btnMostrarTabla.classList.add('active');
       btnMostrarFormulario.classList.remove('active');
       cargarJugadores();
+      modoEdicion = false;
+      idEditando = null;
+      formAgregar.reset();
+      document.getElementById("id").disabled = false; // habilitar input id
+      formAgregar.querySelector("button").textContent = "Guardar jugador";
     }
 
     // Mostrar formulario y ocultar tabla
@@ -143,7 +158,11 @@
       formulario.style.display = 'block';
       btnMostrarFormulario.classList.add('active');
       btnMostrarTabla.classList.remove('active');
-      formAgregar.reset();
+      if (!modoEdicion) {
+        formAgregar.reset();
+        document.getElementById("id").disabled = false; // habilitar input id para nuevo jugador
+        formAgregar.querySelector("button").textContent = "Guardar jugador";
+      }
     }
 
     btnMostrarTabla.addEventListener('click', mostrarTabla);
@@ -163,7 +182,10 @@
               <td>${j.apellido}</td>
               <td>${j.posicion}</td>
               <td>${j.numero_camiseta}</td>
-              <td><button class="btn-eliminar" onclick="eliminar(${j.id})">Eliminar</button></td>
+              <td>
+                <button class="btn-eliminar" onclick="eliminar(${j.id})">Eliminar</button>
+                <button class="btn-editar" onclick="editar(${j.id})">Editar</button>
+              </td>
             `;
             contenedor.appendChild(fila);
           });
@@ -177,11 +199,41 @@
       }).then(() => cargarJugadores());
     }
 
-    // Enviar formulario para agregar jugador
+    // Función para editar jugador (carga datos en formulario)
+    async function editar(id) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/jugadores/${id}`);
+        if (!res.ok) throw new Error("Jugador no encontrado");
+        const jugador = await res.json();
+
+        // Mostrar formulario con datos
+        mostrarFormulario();
+
+        document.getElementById("id").value = jugador.id;
+        document.getElementById("nombre").value = jugador.nombre;
+        document.getElementById("apellido").value = jugador.apellido;
+        document.getElementById("posicion").value = jugador.posicion;
+        document.getElementById("numero").value = jugador.numero_camiseta;
+
+        modoEdicion = true;
+        idEditando = id;
+
+        // Bloquear edición del ID (porque es PK)
+        document.getElementById("id").disabled = true;
+
+        formAgregar.querySelector("button").textContent = "Guardar cambios";
+
+      } catch (error) {
+        alert("Error al cargar jugador para edición.");
+        console.error(error);
+      }
+    }
+
+    // Enviar formulario para agregar o actualizar jugador
     formAgregar.addEventListener("submit", async e => {
       e.preventDefault();
 
-      const nuevo = {
+      const jugadorData = {
         id: parseInt(document.getElementById("id").value),
         nombre: document.getElementById("nombre").value,
         apellido: document.getElementById("apellido").value,
@@ -190,35 +242,49 @@
       };
 
       try {
-        const response = await fetch(`${API_BASE_URL}/jugadores`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(nuevo)
-        });
+        if (modoEdicion) {
+          // Actualizar jugador (PUT o PATCH)
+          const response = await fetch(`${API_BASE_URL}/jugadores/${idEditando}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(jugadorData)
+          });
 
-        if (!response.ok) {
-          const msg = await response.text();
+          if (!response.ok) throw new Error("Error al actualizar jugador");
 
-          if (msg.includes("Duplicate entry") && msg.includes("PRIMARY")) {
-            const confirmar = confirm("⚠️ El ID ya existe. ¿Deseas eliminar ese jugador y reemplazarlo?");
-            if (confirmar) {
-              await fetch(`${API_BASE_URL}/jugadores/${nuevo.id}`, { method: "DELETE" });
-              await fetch(`${API_BASE_URL}/jugadores`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(nuevo)
-              });
-              alert("Jugador reemplazado exitosamente.");
-              mostrarTabla();
+          alert("Jugador actualizado correctamente.");
+        } else {
+          // Crear nuevo jugador (POST)
+          const response = await fetch(`${API_BASE_URL}/jugadores`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(jugadorData)
+          });
+
+          if (!response.ok) {
+            const msg = await response.text();
+
+            if (msg.includes("Duplicate entry") && msg.includes("PRIMARY")) {
+              const confirmar = confirm("⚠️ El ID ya existe. ¿Deseas eliminar ese jugador y reemplazarlo?");
+              if (confirmar) {
+                await fetch(`${API_BASE_URL}/jugadores/${jugadorData.id}`, { method: "DELETE" });
+                await fetch(`${API_BASE_URL}/jugadores`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(jugadorData)
+                });
+                alert("Jugador reemplazado exitosamente.");
+                mostrarTabla();
+                return;
+              }
               return;
             }
-            return;
+            throw new Error(msg);
           }
 
-          throw new Error(msg);
+          alert("Jugador guardado exitosamente.");
         }
 
-        alert("Jugador guardado exitosamente.");
         mostrarTabla();
       } catch (error) {
         console.error("Error al guardar:", error);
@@ -232,5 +298,6 @@
 
 </body>
 </html>
+
 
 
