@@ -206,10 +206,11 @@
       });
     }
 
+    // === FUNCIÓN ELIMINAR MODIFICADA AQUÍ ===
     function eliminarJugador(id) {
       if (!confirm("¿Estás seguro de eliminar este jugador?")) return;
 
-      return fetch(`${API_BASE_URL}?id=${id}`, { method: 'DELETE' })
+      return fetch(`${API_BASE_URL}/${id}`, { method: 'DELETE' })  // <-- CAMBIO aquí
         .then(res => {
           if (!res.ok) return res.text().then(text => { throw new Error(text) });
           return res.json();
@@ -332,6 +333,7 @@
 
 </body>
 </html>
+
 
 
 
